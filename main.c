@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  *  linux/init/main.c
  *
@@ -1073,4 +1074,17 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 		schedule_timeout_uninterruptible(10*HZ);
 	}
 	return 0;
+=======
+#include<stdio.h>
+#include"structGenie.c"
+
+//extern struct struct_Genie genieStruct;
+
+int main()
+{
+    printf("before : %d\n",getState("lamp"));
+    printf("result : %d\n",setDevice("lamp"));
+    printf("after : %d\n",getState("lamp"));
+    return 0;
+>>>>>>> 0d83ce7c808d3d93000e0a6310b8708615f5f408
 }
