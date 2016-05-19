@@ -14,8 +14,11 @@
 #define EMPTY_FILE		17
 #define NO_FILE			18
 
-#include<../lib/string.c>
-#include<linux/slab.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdio.h>
+
 struct device_Genie	{
 	int dev_state;
 	char dev_name[TOKEN_LEN];
@@ -23,22 +26,11 @@ struct device_Genie	{
 	struct device_Genie *next;
 };
 
-int init_Genie(void);	//지니 초기화
-void printAll(void);	//현재 상태 전부출력
-void saveGenie(void);	//지니 세이브
-int loadGenie(void);	//지니 로드
-void initStruct(struct device_Genie *node,const char *name);	//노드를 초기화
-int setDevice(const char *name_dev);		//디바이스명을 넣으면 해당 디바이스를 리스트에 넣어줌. 성공시 1 리턴
-int setToken(const char *name_dev, const char *name_token);	//이미 존재하는 디바이스명과 명령어를 주면 명령어를 리스트에 넣어줌. 성공시 1 리턴
-int checkCommand(const char *command);	//입력받은 커맨드가 유효하면 1 리턴
-int errorHandler(int errorNumber);	//에러시 에러처리 후 -1리턴
-
-
 struct device_Genie *genie;			//리스트 헤드역할을 하는 전역변수
 
 int init_Genie()
 {
-	return 0;
+	;
 }
 
 void printAll()
@@ -47,14 +39,14 @@ void printAll()
 	if(genie == NULL) return;
 	struct device_Genie *cursor = genie;
 	while(cursor != NULL)	{
-		printk("\n");
-		if(cursor->dev_state == DEVICE_OFF) printk("State : DEVICE_OFF\n");
-		else if(cursor->dev_state == DEVICE_ON) printk("State : DEVICE_ON\n");
-		else if(cursor->dev_state == DEVICE_EXIST) printk("State : DEVICE_EXIST\n");
-		else	printk("Unknown State\n");
-		printk("Name : %s\n",cursor->dev_name);
+		printf("\n");
+		if(cursor->dev_state == DEVICE_OFF) printf("State : DEVICE_OFF\n");
+		else if(cursor->dev_state == DEVICE_ON) printf("State : DEVICE_ON\n");
+		else if(cursor->dev_state == DEVICE_EXIST) printf("State : DEVICE_EXIST\n");
+		else	printf("Unknown State\n");
+		printf("Name : %s\n",cursor->dev_name);
 		for(i=0;i<NUM_TOKEN;i++)
-			printk("token %d : %s\n",i,cursor->dev_token[i]);
+			printf("token %d : %s\n",i,cursor->dev_token[i]);
 		cursor = cursor->next;
 	}
 }
@@ -63,51 +55,50 @@ void saveGenie()
 {
 	int i,fd;
 	struct device_Genie *cursor;
-	//mkdir("/Genie",0755);
-	sys_open("/Genie",0755,O_DIRECTORY);
-	fd = sys_open("/Genie/struct",O_RDWR,0644);
+	mkdir("/Genie",0755);
+	chdir("/Genie");
+	fd = creat("struct",0644);
 	if(genie != NULL)	{
 		cursor = genie;
 		while(cursor != NULL)	{			//다음 자료구조는 \n으로, 명령어리스트 시작시 &으로, 다음인덱스는 |로 구분 
-			sys_write(fd,"\n",1);
-			sys_write(fd,&(cursor->dev_state),sizeof(int));
-			sys_write(fd,cursor->dev_name,strlen(cursor->dev_name));
-			sys_write(fd,"&",1);
+			write(fd,"\n",1);
+			write(fd,&(cursor->dev_state),sizeof(int));
+			write(fd,cursor->dev_name,strlen(cursor->dev_name));
+			write(fd,"&",1);
 			for(i=0 ;i<NUM_TOKEN ; i++)	if(cursor->dev_token[i][0] != '\0')	{
-					sys_write(fd,"|",1);
-					sys_write(fd,cursor->dev_token[i],strlen(cursor->dev_token[i]) );		
+					write(fd,"|",1);
+					write(fd,cursor->dev_token[i],strlen(cursor->dev_token[i]) );		
 			}
 			cursor = cursor->next;
 		}
 	}
-	sys_write(fd,"#",1);			//파일의 끝을 #으로 표시.
-	sys_close(fd);
+	write(fd,"#",1);			//파일의 끝을 #으로 표시.
+	close(fd);
 }
 
 int loadGenie()
 {
-	int fd,offset,index;
+	int i,j,fd,offset,index;
 	struct device_Genie *cursor;
 	char *chCursor;
 	char ch;
-	//if (access("/Genie/struct",R_OK) == 0)	{
-	//	fd = sys_open("/Genie/struct",O_RDONLY,0644);
-	if((fd = sys_open("/Genie/struct",O_RDONLY,0644)) != -1)	{
-		sys_read(fd,&ch,1);
+	if (access("/Genie/struct",R_OK) == 0)	{
+		fd = open("/Genie/struct");
+		read(fd,&ch,1);
 		if(ch != '\n') return errorHandler(EMPTY_FILE);
-		genie = (struct device_Genie *)vmalloc(sizeof(struct device_Genie));
+		genie = (struct device_Genie *)malloc(sizeof(struct device_Genie));
 		cursor = genie;
-		sys_read(fd,&(genie->dev_state),sizeof(int));
+		read(fd,&(genie->dev_state),sizeof(int));
 		chCursor = cursor->dev_name;
 		offset = 0;
 		while(ch != '#')	{
-			sys_read(fd,&ch,1);
+			read(fd,&ch,1);
 			switch(ch)
 			{
 				case '\n' :
-					cursor->next = (struct device_Genie *)vmalloc(sizeof(struct device_Genie));
+					cursor->next = (struct device_Genie *)malloc(sizeof(struct device_Genie));
 					cursor = cursor->next;
-					sys_read(fd,&(cursor->dev_state),sizeof(int));
+					read(fd,&(cursor->dev_state),sizeof(int));
 					chCursor = cursor->dev_name;
 					offset = 0;
 					break;
@@ -132,14 +123,13 @@ int loadGenie()
 		}	
 	}
 	else return errorHandler(NO_FILE);
-	sys_close(fd);
+	close(fd);
 	return 1;
 }
 
 void initStruct(struct device_Genie *node,const char *name)
 {
 	int i;
-	//node = (struct device_Genie *)vmalloc( sizeof(struct device_Genie *));
 	node->dev_state = DEVICE_OFF;
 	strcpy(node->dev_name,name);
 	strcpy(node->dev_token[0],"TurnOn");
@@ -152,7 +142,7 @@ int setDevice(const char *name_dev)		//디바이스명을 넣으면 해당 디�
     struct device_Genie *cursor = genie;
 	if(genie == NULL)
 	{
-		genie = (struct device_Genie *)vmalloc( sizeof(struct device_Genie));
+		genie = (struct device_Genie *)malloc( sizeof(struct device_Genie));
 		initStruct(genie,name_dev);
 		return 1;
 	}
@@ -161,7 +151,7 @@ int setDevice(const char *name_dev)		//디바이스명을 넣으면 해당 디�
 		if(!strcmp(cursor->next->dev_name,name_dev)) return errorHandler(DEVICE_EXIST);
 		cursor = cursor->next;
     }
-    cursor->next = (struct device_Genie *)vmalloc( sizeof(struct device_Genie) );
+    cursor->next = (struct device_Genie *)malloc( sizeof(struct device_Genie) );
 	initStruct(cursor->next,name_dev);
 	saveGenie();
     return 1;
@@ -193,8 +183,8 @@ int checkCommand(const char *command)	//입력받은 커맨드가 유효하면 1
 	int len = strlen(command);
 	int flag;
 	struct device_Genie *cursor = genie;
-	printk("input : %s, length : %d\n",command,len);
-	printk("%s %s %s\n",genie->next->dev_name,genie->next->dev_token[0],genie->next->dev_token[1]);
+	printf("input : %s, length : %d\n",command,len);
+	printf("%s %s %s\n",genie->next->dev_name,genie->next->dev_token[0],genie->next->dev_token[1]);
 	while(cursor != NULL)	{
 		flag = 0;
 		for(j=0 ; j<len && cursor->dev_name[j] != '\0' ; j++)	{
@@ -211,7 +201,7 @@ int checkCommand(const char *command)	//입력받은 커맨드가 유효하면 1
 		}
 		cursor = cursor->next;
 	}
-	printk("finish\n");
+	printf("finish\n");
 	return errorHandler(NO_COMMAND);
 }
 
@@ -220,25 +210,25 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
     switch (errorNumber)
     {
 	case NO_DEVICE :
-	    printk("wrong device name.\n");
+	    printf("wrong device name.\n");
 	    break;
 	case DEVICE_EXIST :
-	    printk("device already exist.\n");
+	    printf("device already exist.\n");
 	    break;
 	case TOKEN_EXIST :
-		printk("token already eixst.\n");
+		printf("token already eixst.\n");
 		break;
 	case NO_COMMAND :
-		printk("command not found.\n");
+		printf("command not found.\n");
 		break;
 	case NO_FILE :
-		printk("savefile not exist.\n");
+		printf("savefile not exist.\n");
 		break;
 	case EMPTY_FILE :
-		printk("savefile is empty.\n");
+		printf("savefile is empty.\n");
 		break;
 	default :
-	    printk("Unknown Error.\n");
+	    printf("Unknown Error.\n");
 	    break;
     }
     return -1;
