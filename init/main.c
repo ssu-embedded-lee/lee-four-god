@@ -1045,6 +1045,7 @@ static noinline void __init kernel_init_freeable(void)
 static int genie(void * unused)
 {
 	pid_t pid = getpid();
+	//cad_pid = task_pid(current);
 	while(1)
 	{
 		printk("genie() is on\n");
