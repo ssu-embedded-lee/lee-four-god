@@ -11,7 +11,10 @@
 #define DEVICE_ON		14
 #define DEVICE_EXIST	15
 #define TOKEN_EXIST		16
+#define EMPTY_FILE		17
+#define NO_FILE			18
 
+#include<unistd.h>
 #include<stdlib.h>
 #include<string.h>
 #include<stdio.h>
@@ -36,7 +39,11 @@ void printAll()
 	if(genie == NULL) return;
 	struct device_Genie *cursor = genie;
 	while(cursor != NULL)	{
-		printf("State : %d\n",cursor->dev_state);
+		printf("\n");
+		if(cursor->dev_state == DEVICE_OFF) printf("State : DEVICE_OFF\n");
+		else if(cursor->dev_state == DEVICE_ON) printf("State : DEVICE_ON\n");
+		else if(cursor->dev_state == DEVICE_EXIST) printf("State : DEVICE_EXIST\n");
+		else	printf("Unknown State\n");
 		printf("Name : %s\n",cursor->dev_name);
 		for(i=0;i<NUM_TOKEN;i++)
 			printf("token %d : %s\n",i,cursor->dev_token[i]);
@@ -47,19 +54,17 @@ void printAll()
 void saveGenie()
 {
 	int i,fd;
-	char ch = '\n';
 	struct device_Genie *cursor;
 	mkdir("/Genie",0755);
 	chdir("/Genie");
-	printAll();
 	fd = creat("struct",0644);
 	if(genie != NULL)	{
 		cursor = genie;
-		while(cursor != NULL)	{			//다음 자료구조는 \n으로, 다음 인스턴스는 &으로, 다음인덱스는 |로 구분 
-			write(fd,&ch,1);
-			write(fd,cursor->dev_state,sizeof(int));
-			write(fd,"&",1);
+		while(cursor != NULL)	{			//다음 자료구조는 \n으로, 명령어리스트 시작시 &으로, 다음인덱스는 |로 구분 
+			write(fd,"\n",1);
+			write(fd,&(cursor->dev_state),sizeof(int));
 			write(fd,cursor->dev_name,strlen(cursor->dev_name));
+			write(fd,"&",1);
 			for(i=0 ;i<NUM_TOKEN ; i++)	if(cursor->dev_token[i][0] != '\0')	{
 					write(fd,"|",1);
 					write(fd,cursor->dev_token[i],strlen(cursor->dev_token[i]) );		
@@ -67,28 +72,61 @@ void saveGenie()
 			cursor = cursor->next;
 		}
 	}
+	write(fd,"#",1);			//파일의 끝을 #으로 표시.
 	close(fd);
 }
-/*
-void loadGenie()
+
+int loadGenie()
 {
-	int i,j,fd;
+	int i,j,fd,offset,index;
 	struct device_Genie *cursor;
+	char *chCursor;
 	char ch;
-	if (access("/Genie/struct"))	{
+	if (access("/Genie/struct",R_OK) == 0)	{
 		fd = open("/Genie/struct");
-		while(1)	{
+		read(fd,&ch,1);
+		if(ch != '\n') return errorHandler(EMPTY_FILE);
+		genie = (struct device_Genie *)malloc(sizeof(struct device_Genie));
+		cursor = genie;
+		read(fd,&(genie->dev_state),sizeof(int));
+		chCursor = cursor->dev_name;
+		offset = 0;
+		while(ch != '#')	{
 			read(fd,&ch,1);
-			if(ch != '\n') break;
-			genie = (struct device_Genie *)malloc(sizeof(device_Genie *));
-			cursor = genie;
-			while(1)	{
-					
-				if(ch == '\n') 
+			switch(ch)
+			{
+				case '\n' :
+					cursor->next = (struct device_Genie *)malloc(sizeof(struct device_Genie));
+					cursor = cursor->next;
+					read(fd,&(cursor->dev_state),sizeof(int));
+					chCursor = cursor->dev_name;
+					offset = 0;
+					break;
+				case '&' :
+					index = 0;
+					chCursor[offset] = '\0';
+					chCursor = cursor->dev_token[index];
+					offset = 0;
+					break;
+				case '|' :
+					chCursor[offset] = '\0';
+					chCursor = cursor->dev_token[index++];
+					offset = 0;
+					break;
+				case '#' :
+					chCursor[offset] = '\0';
+					break;
+				default :
+					chCursor[offset++] = ch;
+					break;
 			}
+		}	
 	}
+	else return errorHandler(NO_FILE);
+	close(fd);
+	return 1;
 }
-*/
+
 void initStruct(struct device_Genie *node,const char *name)
 {
 	int i;
@@ -116,6 +154,7 @@ int setDevice(const char *name_dev)		//디바이스명을 넣으면 해당 디�
     }
     cursor->next = (struct device_Genie *)malloc( sizeof(struct device_Genie) );
 	initStruct(cursor->next,name_dev);
+	saveGenie();
     return 1;
 }
 
@@ -135,6 +174,7 @@ int setToken(const char *name_dev, const char *name_token)	//이미 존재하는
 	}
 	cursor = cursor->next;
     }
+	saveGenie();
     return errorHandler(NO_DEVICE);
 }
 
@@ -181,6 +221,12 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
 		break;
 	case NO_COMMAND :
 		printf("command not found.\n");
+		break;
+	case NO_FILE :
+		printf("savefile not exist.\n");
+		break;
+	case EMPTY_FILE :
+		printf("savefile is empty.\n");
 		break;
 	default :
 	    printf("Unknown Error.\n");

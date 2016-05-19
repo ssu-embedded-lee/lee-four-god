@@ -33,14 +33,19 @@ int main(void)
 	int ret;
 	int state;
 	int command;
-	setDevice("Light");
-	setDevice("TV");
+	if(loadGenie() < 0)	{
+		setDevice("Computer");
+		setDevice("AirConditioner");
+		saveGenie();
+	}
+	printAll();
+	return 0;
 	while(1)
 	{
 		ret = 0;
 		state = 1;
 		command = 0;
-
+getchar();
 		ret=getGenie();
 		getchar();	//개행문자 제거
 		showState();
