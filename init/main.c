@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
  *  linux/init/main.c
  *
