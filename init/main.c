@@ -1044,8 +1044,7 @@ static noinline void __init kernel_init_freeable(void)
 
 static int genie(void * unused)
 {
-	pid_t pid = getpid();
-	//cad_pid = task_pid(current);
+	pid_t pid = task_pid_nr(current);
 	while(1)
 	{
 		printk("genie() is on\n");
@@ -1063,7 +1062,7 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 	while(1)
 	{
 		printk("heartBeat() is on\n");
-		if(!find_task_by_pid(pid))	//	안되면 vpid 해볼것
+		if(!find_task_by_vpid(genie_pid))	//	안되면 vpid 해볼것
 		{
 			printk("Genie is off\n");
 			//genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	지니 다시 실행
@@ -1076,3 +1075,4 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 		schedule_timeout_uninterruptible(10*HZ);
 	}
 	return 0;
+}
