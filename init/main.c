@@ -1044,9 +1044,11 @@ static noinline void __init kernel_init_freeable(void)
 
 static int genie(void * unused)
 {
+	pid_t pid = getpid();
 	while(1)
 	{
 		printk("genie() is on\n");
+		printk("genie PID : %d\n",pid);
 		schedule_timeout_uninterruptible(20*HZ);
 	}
 	return 0;
