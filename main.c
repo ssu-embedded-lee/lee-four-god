@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
  *  linux/init/main.c
  *
@@ -89,7 +88,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-static int genie(void *);
+#include "structGenie.c"
+
+static int genieMain(void *);
 static int heartBeat(void *);
 static int kernel_init(void *);
 
@@ -1043,12 +1044,35 @@ static noinline void __init kernel_init_freeable(void)
 	load_default_modules();
 }
 
-static int genie(void * unused)
+static int genieMain(void * unused)
 {
+	//테스트용 Main함수
+	pid_t pid = task_pid_nr(current);
+	schedule_timeout_uninterruptible(10*HZ);	//10초 뒤 실행
+	if(loadGenie() < 0)	{
+		setDevice("Computer");
+		setDevice("Lamp");
+		setDevice("TV");
+		setToken("Lamp","TestLamp");
+		setToken("TV","TestTV");
+		setToken("Computer","TestComputer");
+		saveGenie();
+	}
+	printAll();
+	if(checkCommand("TVTestTV")==1) printk("TV Tested\n"); 
+	if(checkCommand("ComputerTestComputer")==1) printk("Computer Tested\n"); 
+	if(checkCommand("LampTestLamp")==1) printk("Lamp Tested\n"); 
+	printk("\"commant not found.\" message must be printed two times.\n"); 
+	if(checkCommand("ABCTestTV")==1) printk("Must not be printed"); 
+	if(checkCommand("TVTestABC")==1) printk("Must not be printed"); 
+		
+	
 	while(1)
 	{
 		printk("genie() is on\n");
-		schedule_timeout_uninterruptible(20*HZ);
+		printk("genie PID : %d\n",pid);
+		schedule_timeout_uninterruptible(9*HZ);
+		
 	}
 	return 0;
 }
@@ -1056,12 +1080,12 @@ static int genie(void * unused)
 static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 검사 및 부팅 시 실행되면서 지니 프로세스 자동 실행
 {
 	pid_t genie_pid;
-	genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
+	genie_pid = kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
 	printk("genie_pid : %d\n",genie_pid);
 	while(1)
 	{
 		printk("heartBeat() is on\n");
-		if(!find_task_by_pid(pid))	//	안되면 vpid 해볼것
+		if(!find_task_by_vpid(genie_pid))	//	안되면 vpid 해볼것
 		{
 			printk("Genie is off\n");
 			//genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	지니 다시 실행
@@ -1074,17 +1098,4 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 		schedule_timeout_uninterruptible(10*HZ);
 	}
 	return 0;
-=======
-#include<stdio.h>
-#include"structGenie.c"
-
-//extern struct struct_Genie genieStruct;
-
-int main()
-{
-    printf("before : %d\n",getState("lamp"));
-    printf("result : %d\n",setDevice("lamp"));
-    printf("after : %d\n",getState("lamp"));
-    return 0;
->>>>>>> 0d83ce7c808d3d93000e0a6310b8708615f5f408
 }
