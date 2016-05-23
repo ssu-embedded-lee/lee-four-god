@@ -1044,12 +1044,15 @@ static noinline void __init kernel_init_freeable(void)
 
 static int genie(void * unused)
 {
-	pid_t pid = task_pid_nr(current);
+	//	read genie struct's flag
 	while(1)
 	{
 		printk("genie() is on\n");
-		printk("genie PID : %d\n",pid);
-		schedule_timeout_uninterruptible(20*HZ);
+		printk("genie PID : %d\n",current->pid);	//	task_pid_nr(current)?
+		//	genie command func
+		//	next command func
+		//	system call func
+		schedule_timeout_uninterruptible(20*HZ);	//	printk / 20sec
 	}
 	return 0;
 }
@@ -1058,19 +1061,21 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 {
 	pid_t genie_pid;
 	genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
-	printk("genie_pid : %d\n",genie_pid);
 	while(1)
 	{
 		printk("heartBeat() is on\n");
-		if(!find_task_by_vpid(genie_pid))	//	안되면 vpid 해볼것
+		printk("heartBeat - pid : %d\n",current->pid);
+		printk("heartBeat - genie_pid : %d\n",genie_pid);
+		if(!find_task_by_vpid(genie_pid))
 		{
-			printk("Genie is off\n");
-			//genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	지니 다시 실행
-			printk("Genie is recoverd\n");
+			//	if we find this process is dead -> kill
+			//	kernel_thread() -> genie process recover	-> genie() -> read genie struct's flag automatically
+			printk("heartBeat - Genie is off\n");
+			printk("heartBeat - Genie is recoverd\n");
 		}
 		else
 		{
-			printk("Genie is on\n");
+			printk("heartBeat - Genie is on\n");
 		}
 		schedule_timeout_uninterruptible(10*HZ);
 	}
