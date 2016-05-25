@@ -81,6 +81,7 @@
 #include <linux/integrity.h>
 #include <linux/proc_ns.h>
 #include <linux/io.h>
+#include "structGenie.c"
 
 #include <asm/io.h>
 #include <asm/bugs.h>
@@ -88,8 +89,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-#include "structGenie.c"
+int readMessage();
 
+static int callChrome(void *);
 static int genieMain(void *);
 static int heartBeat(void *);
 static int kernel_init(void *);
@@ -1046,9 +1048,8 @@ static noinline void __init kernel_init_freeable(void)
 
 static int genieMain(void * unused)
 {
-	//테스트용 Main함수
-	pid_t pid = task_pid_nr(current);
-	schedule_timeout_uninterruptible(10*HZ);	//10초 뒤 실행
+	pid_t pid;
+	int command = 0;
 	if(loadGenie() < 0)	{
 		setDevice("Computer");
 		setDevice("Lamp");
@@ -1065,37 +1066,65 @@ static int genieMain(void * unused)
 	printk("\"commant not found.\" message must be printed two times.\n"); 
 	if(checkCommand("ABCTestTV")==1) printk("Must not be printed"); 
 	if(checkCommand("TVTestABC")==1) printk("Must not be printed"); 
-		
+	//	read genie struct's flag
 	
+	pid = kernel_thread(callChrome,NULL,CLONE_FS | CLONE_FILES);
+	printk("genie PID : %d\n",current->pid);	//	task_pid_nr(current)?
+	printk("chrome PID : %d\n",pid);
 	while(1)
 	{
 		printk("genie() is on\n");
-		printk("genie PID : %d\n",pid);
-		schedule_timeout_uninterruptible(9*HZ);
+		command = readMessage();
 		
+		////////////////////////////
+		//
+		//	Do something for command
+		//
+		///////////////////////////
+		
+
+		schedule_timeout_uninterruptible(1*HZ);	//	디버깅용
 	}
 	return 0;
+}
+
+int readMessage();
+{
+	int deviceNum=0, tokenNum=0;
+	while(0)	{								//file read routine?
+		;
+	}
+	return (deviceNum * NUM_TOKEN + tokenNum);	//deviceNum = ret / NUM_TOKEN, tokenNum = ret % NUM_TOKEN
+}
+static int callChrome(void *unused)
+{
+	
+	do_execve(getname("/etc/genieVoice"),NULL,NULL);
+	return -1;			//절대 수행되지 않는 부분
 }
 
 static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 검사 및 부팅 시 실행되면서 지니 프로세스 자동 실행
 {
 	pid_t genie_pid;
+	schedule_timeout_uninterruptible(10*HZ);	//10초 뒤 실행
 	genie_pid = kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
-	printk("genie_pid : %d\n",genie_pid);
+	printk("heartBeat - pid : %d\n",current->pid);
+	printk("heartBeat - genie_pid : %d\n",genie_pid);
 	while(1)
 	{
 		printk("heartBeat() is on\n");
-		if(!find_task_by_vpid(genie_pid))	//	안되면 vpid 해볼것
+		if(!find_task_by_vpid(genie_pid))
 		{
-			printk("Genie is off\n");
-			//genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	지니 다시 실행
-			printk("Genie is recoverd\n");
+			//	if we find this process is dead -> kill
+			//	kernel_thread() -> genie process recover	-> genie() -> read genie struct's flag automatically
+			printk("heartBeat - Genie is off\n");
+			printk("heartBeat - Genie is recoverd\n");
 		}
 		else
 		{
-			printk("Genie is on\n");
+			printk("heartBeat - Genie is on\n");
 		}
-		schedule_timeout_uninterruptible(10*HZ);
+		schedule_timeout_uninterruptible(1*HZ);
 	}
 	return 0;
 }
