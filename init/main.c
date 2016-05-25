@@ -89,7 +89,6 @@
 #include <asm/cacheflush.h>
 
 static int genie(void *);
-static int heartBeat(void *);
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -966,7 +965,7 @@ static int __ref kernel_init(void *unused)
 		panic("Requested init %s failed (error %d).",
 		      execute_command, ret);
 	}
-	kernel_thread(heartBeat, NULL, CLONE_FS | CLONE_FILES);
+	kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 	if (!try_to_run_init_process("/sbin/init") ||
 	    !try_to_run_init_process("/etc/init") ||
 	    !try_to_run_init_process("/bin/init") ||
@@ -1044,40 +1043,26 @@ static noinline void __init kernel_init_freeable(void)
 
 static int genie(void * unused)
 {
-	//	read genie struct's flag
+//	loadGenieState();
+	pid_t genie_pid = current->pid;
+//	pid_t chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+//	printk("Chrome->pid : %d\n",chrome_pid);
 	while(1)
 	{
 		printk("genie() is on\n");
-		printk("genie PID : %d\n",current->pid);	//	task_pid_nr(current)?
-		//	genie command func
-		//	next command func
-		//	system call func
-		schedule_timeout_uninterruptible(20*HZ);	//	printk / 20sec
-	}
-	return 0;
-}
-
-static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 검사 및 부팅 시 실행되면서 지니 프로세스 자동 실행
-{
-	pid_t genie_pid;
-	genie_pid = kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
-	while(1)
-	{
-		printk("heartBeat() is on\n");
-		printk("heartBeat - pid : %d\n",current->pid);
-		printk("heartBeat - genie_pid : %d\n",genie_pid);
-		if(!find_task_by_vpid(genie_pid))
+		printk("genie() - pid : %d\n",genie_pid);
+	/*	if(!find_task_by_vpid(chrome_pid))
 		{
-			//	if we find this process is dead -> kill
-			//	kernel_thread() -> genie process recover	-> genie() -> read genie struct's flag automatically
-			printk("heartBeat - Genie is off\n");
+			printk("Chrome is off\n");
+			chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 			printk("heartBeat - Genie is recoverd\n");
 		}
 		else
 		{
 			printk("heartBeat - Genie is on\n");
-		}
-		schedule_timeout_uninterruptible(10*HZ);
+		}*/
+		//saveGenieState();
+		schedule_timeout_uninterruptible(5*HZ);
 	}
 	return 0;
 }
