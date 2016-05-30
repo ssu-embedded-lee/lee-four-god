@@ -890,14 +890,14 @@ asmlinkage long sys_membarrier(int cmd, int flags);
 asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
 
 //genie systemcall space
-asmlinkage int sys_geniesyscall1();
-asmlinkage int sys_geniesyscall2();
-asmlinkage int sys_geniesyscall3();
-asmlinkage int sys_geniesyscall4();
-asmlinkage int sys_geniesyscall5();
-asmlinkage int sys_geniesyscall6();
-asmlinkage int sys_geniesyscall7();
-asmlinkage int sys_geniesyscall8();
+asmlinkage int sys_geniesyscall1(char *);
+asmlinkage int sys_geniesyscall2(char *);
+asmlinkage int sys_geniesyscall3(char *);
+asmlinkage int sys_geniesyscall4(char *);
+asmlinkage int sys_geniesyscall5(char *);
+asmlinkage int sys_geniesyscall6(char *);
+asmlinkage int sys_geniesyscall7(char *);
+asmlinkage int sys_geniesyscall8(char *);
 //genie systemcall space
 
 #endif
