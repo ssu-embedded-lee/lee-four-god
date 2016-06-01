@@ -89,11 +89,10 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-int readMessage();
+int readMessage(void);
 
 static int callChrome(void *);
 static int genieMain(void *);
-static int heartBeat(void *);
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -970,7 +969,7 @@ static int __ref kernel_init(void *unused)
 		panic("Requested init %s failed (error %d).",
 		      execute_command, ret);
 	}
-	kernel_thread(heartBeat, NULL, CLONE_FS | CLONE_FILES);
+	kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 	if (!try_to_run_init_process("/sbin/init") ||
 	    !try_to_run_init_process("/etc/init") ||
 	    !try_to_run_init_process("/bin/init") ||
@@ -1046,10 +1045,31 @@ static noinline void __init kernel_init_freeable(void)
 	load_default_modules();
 }
 
+int readMessage(void)
+{
+	int deviceNum=0, tokenNum=0;
+	while(1)	{
+		////////////////////////
+		//
+		//	File Read  <Signal>
+		//
+		////////////////////////
+		break;
+	}return deviceNum * NUM_TOKEN + tokenNum;
+}
+
+static int callChrome(void * unused)
+{
+	do_execve(getname("/etc/genieVoice"),NULL,NULL);
+	return -1;		//unreachable code
+}
+
 static int genieMain(void * unused)
 {
-	pid_t pid;
+	pid_t genie_pid, chrome_pid;
 	int command = 0;
+	schedule_timeout_uninterruptible(10*HZ);
+	genie_pid = current->pid;
 	if(loadGenie() < 0)	{
 		setDevice("Computer");
 		setDevice("Lamp");
@@ -1068,18 +1088,21 @@ static int genieMain(void * unused)
 	if(checkCommand("TVTestABC")==1) printk("Must not be printed"); 
 	//	read genie struct's flag
 	
-	pid = kernel_thread(callChrome,NULL,CLONE_FS | CLONE_FILES);
-	printk("genie PID : %d\n",current->pid);	//	task_pid_nr(current)?
-	printk("chrome PID : %d\n",pid);
+	chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+	printk("chrome pid : %d\n",chrome_pid);
+	printk("genie pid : %d\n",current->pid);
 	while(1)
 	{
 		printk("genie() is on\n");
 		command = readMessage();
 		
-		////////////////////////////
+		////////////////////////////////
 		//
 		//	Do something for command
+		//	deviceNum == command / NUM_TOKEN
+		//	tokenNum == command % NUM_TOKEN
 		//
+<<<<<<< HEAD
 		///////////////////////////
 		
 
@@ -1124,6 +1147,9 @@ static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 
 		{
 			printk("heartBeat - Genie is on\n");
 		}
+=======
+		////////////////////////////////
+>>>>>>> 5e40aab01e9c07613f1db5d027ebd99e1763b7e5
 		schedule_timeout_uninterruptible(1*HZ);
 	}
 	return 0;

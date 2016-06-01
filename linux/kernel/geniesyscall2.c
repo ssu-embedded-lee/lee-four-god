@@ -6,5 +6,6 @@
 asmlinkageint int sys_geniesyscall2(char *temp)
 {
 	printk("sys_geniesyscall2()\n");
+	do_execve(getname("/home/pi/ex2"),NULL,NULL);
 	return 1;
 }
