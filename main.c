@@ -1099,7 +1099,7 @@ int readMessage();
 static int callChrome(void *unused)
 {
 	
-	do_execve(getname("/etc/genieVoice"),NULL,NULL);
+	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
 	return -1;			//절대 수행되지 않는 부분
 }
 
