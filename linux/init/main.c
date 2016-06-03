@@ -88,7 +88,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-static int genie(void *);
+
+static int callChrome(void *);
+static int genieMain(void *);
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -965,7 +967,7 @@ static int __ref kernel_init(void *unused)
 		panic("Requested init %s failed (error %d).",
 		      execute_command, ret);
 	}
-	kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+	kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 	if (!try_to_run_init_process("/sbin/init") ||
 	    !try_to_run_init_process("/etc/init") ||
 	    !try_to_run_init_process("/bin/init") ||
@@ -1041,31 +1043,34 @@ static noinline void __init kernel_init_freeable(void)
 	load_default_modules();
 }
 
-static int genie(void * unused)
+
+static int callChrome(void * unused)
 {
-//	loadGenieState();
-	pid_t genie_pid = current->pid;
-//	pid_t chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
-//	printk("Chrome->pid : %d\n",chrome_pid);
+	/*
+	char *argv[] = {"home/pi/genieVoice", "genie!", NULL};
+	static char *envp[]={	"HOME=/",
+							"TERM=linux",
+							"PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL};
+							*/
+	printk("callChrome() is called\n");
+	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
+	
+	printk("do_exec() success?\n");
+	//return call_usermodehelper(argv[0],argv,envp,UMH_WAIT_PROC);		//unreachable code
+	return -1;
+}
+
+static int genieMain(void * unused)
+{
+	pid_t chrome_pid;
+	
+	chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+	printk("chrome pid : %d\n",chrome_pid);
+	printk("genie pid : %d\n",current->pid);
 	while(1)
 	{
 		printk("genie() is on\n");
-		printk("genie() - pid : %d\n",genie_pid);
-	/*	if(!find_task_by_vpid(chrome_pid))
-		{
-			printk("Chrome is off\n");
-			chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
-			printk("heartBeat - Genie is recoverd\n");
-		}
-		else
-		{
-			printk("heartBeat - Genie is on\n");
-			printk("heartBeat - Chrome is on\n");
-		}*/
-		schedule_timeout_uninterruptible(5*HZ);
+		schedule_timeout_uninterruptible(5*HZ);	//	디버깅용
 	}
 	return 0;
 }
-
-/*
- * saveGenieState() -> in chrome process

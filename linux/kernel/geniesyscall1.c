@@ -3,8 +3,9 @@
 #include <linux/kernel.h>
 #include <linux/sched.h>
 
-asmlinkageint int sys_geniesyscall1(char *temp)
+asmlinkage int sys_geniesyscall1(char *temp)
 {
 	printk("sys_geniesyscall1()\n");
+	do_execve(getname("/home/pi/ex1"),NULL,NULL);
 	return 1;
 }

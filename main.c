@@ -1102,7 +1102,54 @@ static int genieMain(void * unused)
 		//	deviceNum == command / NUM_TOKEN
 		//	tokenNum == command % NUM_TOKEN
 		//
+<<<<<<< HEAD
+		///////////////////////////
+		
+
+		schedule_timeout_uninterruptible(1*HZ);	//	디버깅용
+	}
+	return 0;
+}
+
+int readMessage();
+{
+	int deviceNum=0, tokenNum=0;
+	while(0)	{								//file read routine?
+		;
+	}
+	return (deviceNum * NUM_TOKEN + tokenNum);	//deviceNum = ret / NUM_TOKEN, tokenNum = ret % NUM_TOKEN
+}
+static int callChrome(void *unused)
+{
+	
+	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
+	return -1;			//절대 수행되지 않는 부분
+}
+
+static int heartBeat(void * unused)		//	10초 단위로 지니 살아있는 지 검사 및 부팅 시 실행되면서 지니 프로세스 자동 실행
+{
+	pid_t genie_pid;
+	schedule_timeout_uninterruptible(10*HZ);	//10초 뒤 실행
+	genie_pid = kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES);	//	첫 실행 시 지니 실행
+	printk("heartBeat - pid : %d\n",current->pid);
+	printk("heartBeat - genie_pid : %d\n",genie_pid);
+	while(1)
+	{
+		printk("heartBeat() is on\n");
+		if(!find_task_by_vpid(genie_pid))
+		{
+			//	if we find this process is dead -> kill
+			//	kernel_thread() -> genie process recover	-> genie() -> read genie struct's flag automatically
+			printk("heartBeat - Genie is off\n");
+			printk("heartBeat - Genie is recoverd\n");
+		}
+		else
+		{
+			printk("heartBeat - Genie is on\n");
+		}
+=======
 		////////////////////////////////
+>>>>>>> 5e40aab01e9c07613f1db5d027ebd99e1763b7e5
 		schedule_timeout_uninterruptible(1*HZ);
 	}
 	return 0;
