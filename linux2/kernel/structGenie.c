@@ -3,9 +3,6 @@
 
 
 #define SAVEFILE		"/etc/genieStruct.save"
-#define FIFOIN			"/etc/genieIn"
-#define FIFOOUT			"/etc/genieOut"
-#define CHROME_PATH		"/etc/genieVoice"
 
 #define NUM_DEVICE		10
 #define NUM_TOKEN		10
@@ -254,7 +251,7 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
     switch (errorNumber)
     {
 	case NO_DEVICE :
-	    printk("wrong device name.\n");
+	    printk("device not exist.\n");
 	    break;
 	case DEVICE_EXIST :
 	    printk("device already exist.\n");
@@ -280,14 +277,40 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
     return -1;
 }
 
-asmlinkage int sys_geniesyscall6(char *unused)
-{
+asmlinkage int sys_geniesyscall6(char *unused)//커널에 자신의 pid를 알려주기위한 함수. 파일로 저장
+{/*
+	int i,fd;
+	struct file *file;
+	loff_t pos=0;
+	
+	oldfs = get_fs();
+	set_fs(get_ds());
+
+	fd = sys_open(SAVEFILE,O_RDWR|O_CREAT|O_TRUNC,0600);
+	file = fget(fd);
+	
+	vfs_write(file,current->pid,sizeof(pid_t),&pos);
+	vfs_write(file,"#",1,&pos);			//파일의 끝을 #으로 표시.
+	fput(file);
+	sys_close(fd);
+	set_fs(oldfs);*/
 	return 1;
 }
 
-asmlinkage int sys_geniesyscall7(char *unused)
+asmlinkage int sys_geniesyscall7(const char *name_dev, int input_state)
 {
-	return 1;
+	int i;
+    struct device_Genie *cursor = genie;
+    while(cursor != NULL)	{
+		if(!strcmp(cursor->dev_name, name_dev)) {
+			if(input_state < 0) return cursor->state;
+			else cursor->state = input_state;
+			return 1;
+		}
+		cursor = cursor->next;
+    }
+	sys_genieSave();
+    return errorHandler(NO_DEVICE);
 }
 
 asmlinkage int sys_geniesyscall8(char *unused)
