@@ -1046,29 +1046,33 @@ static noinline void __init kernel_init_freeable(void)
 
 static int callChrome(void * unused)
 {
-	/*
-	char *argv[] = {"home/pi/genieVoice", "genie!", NULL};
-	static char *envp[]={	"HOME=/",
-							"TERM=linux",
-							"PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL};
-							*/
+	pid_t pid;
 	printk("callChrome() is called\n");
 	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
-	
-	printk("do_exec() success?\n");
-	//return call_usermodehelper(argv[0],argv,envp,UMH_WAIT_PROC);		//unreachable code
+
 	return -1;
 }
 
 static int genieMain(void * unused)
 {
 	pid_t chrome_pid;
+	//pid_t user_chrome_pid;
 	
 	chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 	printk("chrome pid : %d\n",chrome_pid);
 	printk("genie pid : %d\n",current->pid);
 	while(1)
 	{
+		if(!find_task_by_vpid(chrome_pid))
+		{
+			printk("Chrome is off\n");
+			chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES| CLONE_SIGHAND);
+			printk("Chrome is recoverd\n");
+		}
+		else if(!find_task_by_vpid(user_chrome_pid)
+		{
+			system("sudo shutdown -r now");
+		}
 		printk("genie() is on\n");
 		schedule_timeout_uninterruptible(5*HZ);	//	디버깅용
 	}
