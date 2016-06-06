@@ -1046,7 +1046,6 @@ static noinline void __init kernel_init_freeable(void)
 
 static int callChrome(void * unused)
 {
-	pid_t pid;
 	printk("callChrome() is called\n");
 	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
 
@@ -1069,12 +1068,12 @@ static int genieMain(void * unused)
 			chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES| CLONE_SIGHAND);
 			printk("Chrome is recoverd\n");
 		}
-		else if(!find_task_by_vpid(user_chrome_pid)
-		{
-			system("sudo shutdown -r now");
-		}
+		//else if(!find_task_by_vpid(user_chrome_pid)
+		//	system("sudo shutdown -r now");
 		printk("genie() is on\n");
 		schedule_timeout_uninterruptible(5*HZ);	//	디버깅용
+//		schedule_timeout_uninterruptible(30*HZ);
+//		reboot();
 	}
 	return 0;
 }
