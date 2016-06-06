@@ -88,7 +88,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-static int genie(void *);
+
+static int callChrome(void *);
+static int genieMain(void *);
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -965,7 +967,7 @@ static int __ref kernel_init(void *unused)
 		panic("Requested init %s failed (error %d).",
 		      execute_command, ret);
 	}
-	kernel_thread(genie, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+	kernel_thread(genieMain, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
 	if (!try_to_run_init_process("/sbin/init") ||
 	    !try_to_run_init_process("/etc/init") ||
 	    !try_to_run_init_process("/bin/init") ||
@@ -1041,31 +1043,60 @@ static noinline void __init kernel_init_freeable(void)
 	load_default_modules();
 }
 
-static int genie(void * unused)
+
+static int callChrome(void * unused)
 {
-//	loadGenieState();
-	pid_t genie_pid = current->pid;
-//	pid_t chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
-//	printk("Chrome->pid : %d\n",chrome_pid);
+	printk("callChrome() is called\n");
+	do_execve(getname("/home/pi/genieVoice"),NULL,NULL);
+
+	return -1;
+}
+
+static int genieMain(void * unused)
+{
+	pid_t chrome_pid;
+	//pid_t user_chrome_pid;
+	
+	chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
+	printk("chrome pid : %d\n",chrome_pid);
+	printk("genie pid : %d\n",current->pid);
 	while(1)
 	{
-		printk("genie() is on\n");
-		printk("genie() - pid : %d\n",genie_pid);
-	/*	if(!find_task_by_vpid(chrome_pid))
+		if(!find_task_by_vpid(chrome_pid))
 		{
 			printk("Chrome is off\n");
-			chrome_pid = kernel_thread(chrome, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGHAND);
-			printk("heartBeat - Genie is recoverd\n");
+			chrome_pid = kernel_thread(callChrome, NULL, CLONE_FS | CLONE_FILES| CLONE_SIGHAND);
+			printk("Chrome is recoverd\n");
 		}
-		else
-		{
-			printk("heartBeat - Genie is on\n");
-			printk("heartBeat - Chrome is on\n");
-		}*/
-		schedule_timeout_uninterruptible(5*HZ);
+		//else if(!find_task_by_vpid(user_chrome_pid)
+		//	system("sudo shutdown -r now");
+		printk("genie() is on\n");
+		schedule_timeout_uninterruptible(5*HZ);	//	디버깅용
+//		schedule_timeout_uninterruptible(30*HZ);
+//		reboot();
 	}
 	return 0;
 }
 
-/*
- * saveGenieState() -> in chrome process
+pid_t checkPid_Genie()
+{
+	int fd;
+	struct device_Genie *cursor;
+	pid_t retPid;
+	char ch;
+	struct file *file;
+	loff_t pos = 0;
+	mm_segment_t oldfs;
+
+	oldfs = get_fs();
+	set_fs(get_ds());
+	while((fd = sys_open(PIDFILE,O_RDONLY,0600)) < 0);
+	file = fget(fd);
+	vfs_read(file,&ch,1,&pos);
+	if(ch != '@') return -1;	//잘못된 파일
+	vfs_read(file,&retPid,sizeof(pid_t),&pos);
+	sys_close(fd);
+	set_fs(oldfs);
+	return retPid;
+}
+

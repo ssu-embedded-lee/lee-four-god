@@ -3,6 +3,7 @@
 
 
 #define SAVEFILE		"/etc/genieStruct.save"
+#define PIDFILE			"/etc/geniePid.tmp"
 
 #define NUM_DEVICE		10
 #define NUM_TOKEN		10
@@ -278,7 +279,7 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
 }
 
 asmlinkage int sys_geniesyscall6(char *unused)//커널에 자신의 pid를 알려주기위한 함수. 파일로 저장
-{/*
+{
 	int i,fd;
 	struct file *file;
 	loff_t pos=0;
@@ -286,14 +287,14 @@ asmlinkage int sys_geniesyscall6(char *unused)//커널에 자신의 pid를 알�
 	oldfs = get_fs();
 	set_fs(get_ds());
 
-	fd = sys_open(SAVEFILE,O_RDWR|O_CREAT|O_TRUNC,0600);
+	fd = sys_open(PIDFILE,O_RDWR|O_CREAT|O_TRUNC,0600);
 	file = fget(fd);
 	
+	vfs_write(file,"@",1,&pos);			//파일의 시작을 @으로 표시.
 	vfs_write(file,current->pid,sizeof(pid_t),&pos);
-	vfs_write(file,"#",1,&pos);			//파일의 끝을 #으로 표시.
 	fput(file);
 	sys_close(fd);
-	set_fs(oldfs);*/
+	set_fs(oldfs);
 	return 1;
 }
 
