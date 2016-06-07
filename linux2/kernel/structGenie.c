@@ -2,8 +2,8 @@
 #define STRUCT_GENIE
 
 
-#define SAVEFILE		"/etc/genieStruct.save"
-#define PIDFILE			"/etc/geniePid.tmp"
+#define SAVEFILE		"/home/pi/genieStruct.save"
+#define PIDFILE			"/home/pi/geniePid.save"
 
 #define NUM_DEVICE		10
 #define NUM_TOKEN		10
@@ -52,6 +52,8 @@ int errorHandler(int errorNumber);	//에러시 에러처리 후 -1리턴
 
 struct device_Genie *genie;			//리스트 헤드역할을 하는 전역변수
 mm_segment_t oldfs;					//errorHandler에서 사용하기 위해 전역으로 선언함
+extern pid_t pid_chrome;
+
 
 int init_Genie()
 {
@@ -278,34 +280,20 @@ int errorHandler(int errorNumber)	//에러시 에러처리 후 -1리턴
     return -1;
 }
 
-asmlinkage int sys_geniesyscall6(char *unused)//커널에 자신의 pid를 알려주기위한 함수. 파일로 저장
+asmlinkage int sys_geniePid(pid_t inputPid)//커널에 자신의 pid를 알려주기위한 함수. pid를 찾아서 인자로 넣어야함
 {
-	int i,fd;
-	struct file *file;
-	loff_t pos=0;
-	
-	oldfs = get_fs();
-	set_fs(get_ds());
-
-	fd = sys_open(PIDFILE,O_RDWR|O_CREAT|O_TRUNC,0600);
-	file = fget(fd);
-	
-	vfs_write(file,"@",1,&pos);			//파일의 시작을 @으로 표시.
-	vfs_write(file,current->pid,sizeof(pid_t),&pos);
-	fput(file);
-	sys_close(fd);
-	set_fs(oldfs);
+	pid_chrome = inputPid;
 	return 1;
 }
 
-asmlinkage int sys_geniesyscall7(const char *name_dev, int input_state)
+asmlinkage int sys_genieState(const char *name_dev, int input_state)	//기기의 state를 변경하거나 얻는 함수.
 {
 	int i;
     struct device_Genie *cursor = genie;
     while(cursor != NULL)	{
 		if(!strcmp(cursor->dev_name, name_dev)) {
-			if(input_state < 0) return cursor->state;
-			else cursor->state = input_state;
+			if(input_state < 0) return cursor->dev_state;
+			else cursor->dev_state = input_state;
 			return 1;
 		}
 		cursor = cursor->next;

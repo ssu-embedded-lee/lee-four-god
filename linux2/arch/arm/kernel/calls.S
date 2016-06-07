@@ -408,8 +408,8 @@
 		CALL(sys_genieSetDevice)
 		CALL(sys_genieSetToken)
 /* 395 */
-		CALL(sys_geniesyscall6)
-		CALL(sys_geniesyscall7)
+		CALL(sys_geniePid)
+		CALL(sys_genieState)
 		CALL(sys_geniesyscall8)
 // genie systemcall space
 #ifndef syscalls_counted

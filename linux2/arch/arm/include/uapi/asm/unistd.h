@@ -424,8 +424,8 @@
 #define __NR_genieCheckCommand	(__NR_SYSCALL_BASE+393)
 #define __NR_genieSetDevice	(__NR_SYSCALL_BASE+394)
 #define __NR_genieSetToken	(__NR_SYSCALL_BASE+395)
-#define __NR_geniesyscall6	(__NR_SYSCALL_BASE+396)
-#define __NR_geniesyscall7	(__NR_SYSCALL_BASE+397)
+#define __NR_geniePid	(__NR_SYSCALL_BASE+396)
+#define __NR_genieState	(__NR_SYSCALL_BASE+397)
 #define __NR_geniesyscall8	(__NR_SYSCALL_BASE+398)
 // genie systemcall space
 
