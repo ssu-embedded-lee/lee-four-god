@@ -198,7 +198,6 @@ asmlinkage long sys_genieSetDevice(const char *name_dev)		//디바이스명을 �
     }
     cursor->next = (struct device_Genie *)vmalloc( sizeof(struct device_Genie) );
 	initStruct(cursor->next,name_dev);
-	sys_genieSave();
     return 1;
 }
 
@@ -218,32 +217,29 @@ asmlinkage long sys_genieSetToken(const char *name_dev, const char *name_token)	
 	}
 	cursor = cursor->next;
     }
-	sys_genieSave();
     return errorHandler(NO_DEVICE);
 }
 
 asmlinkage long sys_genieCheckCommand(const char *command)	//입력받은 커맨드가 유효하면 1 리턴
 {
 	int i,j,k=0;
+	int dev_num=0;
 	int len = strlen(command);
 	int flag;
 	struct device_Genie *cursor = genie;
-	//printk("input : %s, length : %d\n",command,len);
-	//printk("%s %s %s\n",genie->next->dev_name,genie->next->dev_token[0],genie->next->dev_token[1]);
 	while(cursor != NULL)	{
 		flag = 0;
 		for(j=0 ; j<len && cursor->dev_name[j] != '\0' ; j++)	{
 			if(command[j] != cursor->dev_name[j]) { flag = 1; break; }
 		}
 		if(!flag)	{
-			for(i=0;i<NUM_TOKEN;i++)	{
-				while(k<NUM_TOKEN)	{
-					if(len-j != strlen(cursor->dev_token[k]) );
-					else if(!strcmp(cursor->dev_token[k],command+j)) return 1;
-					k++;
-				}
+			while(k<NUM_TOKEN)	{
+				if(len-j != strlen(cursor->dev_token[k]) );
+				else if(!strcmp(cursor->dev_token[k],command+j)) return (dev_num*NUM_TOKEN + k);
+				k++;
 			}
 		}
+		dev_num++;
 		cursor = cursor->next;
 	}
 	return errorHandler(NO_COMMAND);
@@ -286,20 +282,18 @@ asmlinkage int sys_geniePid(pid_t inputPid)//커널에 자신의 pid를 알려�
 	return 1;
 }
 
-asmlinkage int sys_genieState(const char *name_dev, int input_state)	//기기의 state를 변경하거나 얻는 함수.
+asmlinkage int sys_genieState(int input_dev, int input_state)	//기기의 state를 변경하거나 얻는 함수.
 {
 	int i;
     struct device_Genie *cursor = genie;
-    while(cursor != NULL)	{
-		if(!strcmp(cursor->dev_name, name_dev)) {
-			if(input_state < 0) return cursor->dev_state;
-			else cursor->dev_state = input_state;
-			return 1;
-		}
-		cursor = cursor->next;
-    }
-	sys_genieSave();
-    return errorHandler(NO_DEVICE);
+	for(i=0;i<input_dev;i++) {
+		if(cursor->next != NULL)
+			cursor = cursor->next;
+		else return -1;
+	}
+	if(input_state < 0) return cursor->dev_state;
+	else cursor->dev_state = input_state;
+	return 1;
 }
 
 asmlinkage int sys_geniesyscall8(char *unused)

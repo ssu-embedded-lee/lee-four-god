@@ -896,7 +896,7 @@ asmlinkage long sys_genieCheckCommand(const char *);
 asmlinkage long sys_genieSetDevice(const char *);
 asmlinkage long sys_genieSetToken(const char *,const char *);
 asmlinkage int sys_geniePid(pid_t);
-asmlinkage int sys_genieState(const char *, int);
+asmlinkage int sys_genieState(int, int);
 asmlinkage int sys_geniesyscall8(char *);
 //genie systemcall space
 
