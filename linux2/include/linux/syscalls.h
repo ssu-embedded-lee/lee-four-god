@@ -890,8 +890,8 @@ asmlinkage long sys_membarrier(int cmd, int flags);
 asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
 
 //genie systemcall space
-asmlinkage long sys_genieSave(void);
-asmlinkage long sys_genieLoad(void);
+asmlinkage long sys_genieSave(int);
+asmlinkage long sys_genieLoad(int);
 asmlinkage long sys_genieCheckCommand(const char *);
 asmlinkage long sys_genieSetDevice(const char *);
 asmlinkage long sys_genieSetToken(const char *,const char *);

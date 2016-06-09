@@ -91,6 +91,8 @@
 
 ////////////////Genie////////////////////
 
+#include<linux/syscalls.h>
+
 static int callGenie(void *);
 static int genieMain(void *);
 
@@ -1078,6 +1080,8 @@ static int genieMain(void * unused)
 			pid_genie = kernel_thread(callGenie, NULL, CLONE_FS | CLONE_FILES| CLONE_SIGHAND);
 			printk("Chrome is recoverd\n");
 		}
+		if(!find_task_by_vpid(pid_chrome))
+			sys_reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_RESTART, NULL);
 		//else if(!find_task_by_vpid(user_chrome_pid)
 		//	system("sudo shutdown -r now");
 		printk("genie() is on. pid_chrome : %d\n",pid_chrome);

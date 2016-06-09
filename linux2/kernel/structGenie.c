@@ -3,6 +3,7 @@
 
 
 #define SAVEFILE		"/home/pi/genieStruct.save"
+#define SAVEFILE_AUTO	"/home/pi/genieStruct.auto"
 #define PIDFILE			"/home/pi/geniePid.save"
 
 #define NUM_DEVICE		10
@@ -38,7 +39,8 @@ struct device_Genie	{
 
 int init_Genie(void);	//지니 초기화
 void printAll(void);	//현재 상태 전부출력
-//asmlinkage long sys_genieSave(void);	//지니 세이브
+int genieSave_auto(void);	//지니 오토세이브
+
 //asmlinkage long sys_genieLoad(void);	//지니 로드
 void initStruct(struct device_Genie *node,const char *name);	//노드를 초기화
 //asmlinkage long sys_genieSetDevice(const char *name_dev);		//디바이스명을 넣으면 해당 디바이스를 리스트에 넣어줌. 성공시 1 리턴
@@ -79,17 +81,21 @@ void printAll()
 	}
 }
 
-asmlinkage long sys_genieSave()
+asmlinkage long sys_genieSave(int flag)
 {
 	int i,fd;
 	struct device_Genie *cursor;
 	struct file *file;
 	loff_t pos=0;
+	char genieName[100];
 
+	if(flag <= 0) strcpy(genieName,SAVEFILE_AUTO);
+	else	strcpy(genieName,SAVEFILE);
+	
 	oldfs = get_fs();
 	set_fs(get_ds());
 
-	fd = sys_open(SAVEFILE,O_RDWR|O_CREAT|O_TRUNC,0600);
+	fd = sys_open(genieName,O_RDWR|O_CREAT|O_TRUNC,0600);
 	file = fget(fd);
 	if(genie != NULL)	{
 		cursor = genie;
@@ -112,18 +118,22 @@ asmlinkage long sys_genieSave()
 	return 1;
 }
 
-asmlinkage long sys_genieLoad()
+asmlinkage long sys_genieLoad(int flag)
 {
 	int fd,offset,index=0;
 	struct device_Genie *cursor;
 	char *chCursor;
 	char ch;
+	char genieName[100];
 	struct file *file;
 	loff_t pos = 0;
 
+	if(flag <= 0) strcpy(genieName,SAVEFILE_AUTO);
+	else	strcpy(genieName,SAVEFILE);
+
 	oldfs = get_fs();
 	set_fs(get_ds());
-	if((fd = sys_open(SAVEFILE,O_RDONLY,0600)) >= 0)	{
+	if((fd = sys_open(genieName,O_RDONLY,0600)) >= 0)	{
 		file = fget(fd);
 		vfs_read(file,&ch,1,&pos);
 		if(ch != '\n') return errorHandler(EMPTY_FILE);
@@ -189,6 +199,7 @@ asmlinkage long sys_genieSetDevice(const char *name_dev)		//디바이스명을 �
 	{
 		genie = (struct device_Genie *)vmalloc( sizeof(struct device_Genie));
 		initStruct(genie,name_dev);
+		sys_genieSave(0);
 		return 1;
 	}
     while(cursor->next != NULL)
@@ -198,7 +209,8 @@ asmlinkage long sys_genieSetDevice(const char *name_dev)		//디바이스명을 �
     }
     cursor->next = (struct device_Genie *)vmalloc( sizeof(struct device_Genie) );
 	initStruct(cursor->next,name_dev);
-    return 1;
+	sys_genieSave(0);
+	return 1;
 }
 
 asmlinkage long sys_genieSetToken(const char *name_dev, const char *name_token)	//이미 존재하는 디바이스명과 명령어를 주면 명령어를 리스트에 넣어줌. 성공시 1 리턴
@@ -211,6 +223,7 @@ asmlinkage long sys_genieSetToken(const char *name_dev, const char *name_token)	
 			if(!strcmp(cursor->dev_token[i],name_token)) return errorHandler(TOKEN_EXIST);
 			if(strlen(cursor->dev_token[i]) == 0)	{
 				strcpy(cursor->dev_token[i],name_token);
+				sys_genieSave(0);
 				return 1;
 			}
 		}
@@ -235,7 +248,10 @@ asmlinkage long sys_genieCheckCommand(const char *command)	//입력받은 커맨
 		if(!flag)	{
 			while(k<NUM_TOKEN)	{
 				if(len-j != strlen(cursor->dev_token[k]) );
-				else if(!strcmp(cursor->dev_token[k],command+j)) return (dev_num*NUM_TOKEN + k);
+				else if(!strcmp(cursor->dev_token[k],command+j)) {
+					sys_genieSave(0);
+					return (dev_num*NUM_TOKEN + k);
+				}
 				k++;
 			}
 		}
@@ -293,6 +309,7 @@ asmlinkage int sys_genieState(int input_dev, int input_state)	//기기의 state�
 	}
 	if(input_state < 0) return cursor->dev_state;
 	else cursor->dev_state = input_state;
+	sys_genieSave(0);
 	return 1;
 }
 
