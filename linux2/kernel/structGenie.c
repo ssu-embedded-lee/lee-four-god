@@ -4,6 +4,7 @@
 
 #define SAVEFILE		"/home/pi/genieStruct.save"
 #define SAVEFILE_AUTO	"/home/pi/genieStruct.auto"
+#define LOADFILE		"/var/www/html/loadData.txt"
 #define PIDFILE			"/home/pi/geniePid.save"
 
 #define NUM_DEVICE		10
@@ -40,21 +41,16 @@ struct device_Genie	{
 int init_Genie(void);	//지니 초기화
 void printAll(void);	//현재 상태 전부출력
 int genieSave_auto(void);	//지니 오토세이브
+int writeLoadFile(void);
 
-//asmlinkage long sys_genieLoad(void);	//지니 로드
 void initStruct(struct device_Genie *node,const char *name);	//노드를 초기화
-//asmlinkage long sys_genieSetDevice(const char *name_dev);		//디바이스명을 넣으면 해당 디바이스를 리스트에 넣어줌. 성공시 1 리턴
-//asmlinkage long sys_genieSetToken(const char *name_dev, const char *name_token);	//이미 존재하는 디바이스명과 명령어를 주면 명령어를 리스트에 넣어줌. 성공시 1 리턴
-//asmlinkage long sys_genieCheckCommand(const char *command);	//입력받은 커맨드가 유효하면 1 리턴
-//asmlinkage int sys_geniesyscall6(char *unused);
-//asmlinkage int sys_geniesyscall7(char *unused);
-//asmlinkage int sys_geniesyscall8(char *unused);
 int errorHandler(int errorNumber);	//에러시 에러처리 후 -1리턴
 
 
 struct device_Genie *genie;			//리스트 헤드역할을 하는 전역변수
 mm_segment_t oldfs;					//errorHandler에서 사용하기 위해 전역으로 선언함
 extern pid_t pid_chrome;
+
 
 
 int init_Genie()
@@ -70,10 +66,12 @@ void printAll()
 	cursor = genie;
 	while(cursor != NULL)	{
 		printk("\n");
-		if(cursor->dev_state == DEVICE_OFF) printk("State : DEVICE_OFF\n");
+		/*if(cursor->dev_state == DEVICE_OFF) printk("State : DEVICE_OFF\n");
 		else if(cursor->dev_state == DEVICE_ON) printk("State : DEVICE_ON\n");
 		else if(cursor->dev_state == DEVICE_EXIST) printk("State : DEVICE_EXIST\n");
 		else	printk("Unknown State\n");
+		*/
+		printk("State : %d\n",cursor->dev_state);
 		printk("Name : %s\n",cursor->dev_name);
 		for(i=0;i<NUM_TOKEN;i++)
 			printk("token %d : %s\n",i,cursor->dev_token[i]);
@@ -95,7 +93,7 @@ asmlinkage long sys_genieSave(int flag)
 	oldfs = get_fs();
 	set_fs(get_ds());
 
-	fd = sys_open(genieName,O_RDWR|O_CREAT|O_TRUNC,0600);
+	fd = sys_open(genieName,O_RDWR|O_CREAT|O_TRUNC,0666);
 	file = fget(fd);
 	if(genie != NULL)	{
 		cursor = genie;
@@ -133,7 +131,7 @@ asmlinkage long sys_genieLoad(int flag)
 
 	oldfs = get_fs();
 	set_fs(get_ds());
-	if((fd = sys_open(genieName,O_RDONLY,0600)) >= 0)	{
+	if((fd = sys_open(genieName,O_RDONLY,0666)) >= 0)	{
 		file = fget(fd);
 		vfs_read(file,&ch,1,&pos);
 		if(ch != '\n') return errorHandler(EMPTY_FILE);
@@ -177,6 +175,35 @@ asmlinkage long sys_genieLoad(int flag)
 		sys_close(fd);
 	}
 	else return errorHandler(NO_FILE);
+	writeLoadFile();
+	set_fs(oldfs);
+	return 1;
+}
+
+int writeLoadFile(void)
+{
+	int fd;
+	struct device_Genie *cursor;
+	struct file *file;
+	loff_t pos=0;
+
+	oldfs = get_fs();
+	set_fs(get_ds());
+
+	fd = sys_open(LOADFILE,O_RDWR|O_CREAT|O_TRUNC,0666);
+	file = fget(fd);
+	if(genie != NULL)	{
+		cursor = genie;
+		while(cursor != NULL)	{ 
+			vfs_write(file,cursor->dev_name,strlen(cursor->dev_name),&pos);
+			vfs_write(file," ",1,&pos);
+			vfs_write(file,cursor->dev_token[cursor->dev_state],strlen(cursor->dev_token[cursor->dev_state]),&pos);
+			vfs_write(file,"\n",1,&pos);
+			cursor = cursor->next;
+		}
+	}
+	fput(file);
+	sys_close(fd);
 	set_fs(oldfs);
 	return 1;
 }
@@ -184,12 +211,11 @@ asmlinkage long sys_genieLoad(int flag)
 void initStruct(struct device_Genie *node,const char *name)
 {
 	int i,j;
-	//node = (struct device_Genie *)vmalloc( sizeof(struct device_Genie *));
 	node->dev_state = DEVICE_OFF;
 	strcpy(node->dev_name,name);
 	for(i=0;i<NUM_TOKEN;i++) for(j=0;j<TOKEN_LEN;j++) node->dev_token[i][j] = '\0';
-	strcpy(node->dev_token[0],"TurnOn");
-	strcpy(node->dev_token[1],"TurnOff");
+	strcpy(node->dev_token[0],"켜");
+	strcpy(node->dev_token[1],"꺼");
 	node->next = NULL;
 }
 asmlinkage long sys_genieSetDevice(const char *name_dev)		//디바이스명을 넣으면 해당 디바이스를 리스트에 넣어줌. 성공시 1 리턴
@@ -202,6 +228,8 @@ asmlinkage long sys_genieSetDevice(const char *name_dev)		//디바이스명을 �
 		sys_genieSave(0);
 		return 1;
 	}
+	else
+		if(!strcmp(cursor->dev_name,name_dev)) return errorHandler(DEVICE_EXIST);
     while(cursor->next != NULL)
     {
 		if(!strcmp(cursor->next->dev_name,name_dev)) return errorHandler(DEVICE_EXIST);
@@ -315,6 +343,7 @@ asmlinkage int sys_genieState(int input_dev, int input_state)	//기기의 state�
 
 asmlinkage int sys_geniesyscall8(char *unused)
 {
+	printAll();
 	return 1;
 }
 
